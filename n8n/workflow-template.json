@@ -1,0 +1,92 @@
+{
+  "name": "Wazuh Alert - Ollama Analysis - Email (Template)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "wazuh-alert",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "replace-webhook-node-id",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        300
+      ],
+      "webhookId": "replace-webhook-id"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:11434/api/chat",
+        "sendBody": true,
+        "contentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"llama3.2:3b\",\n  \"messages\": [\n    {\"role\": \"system\", \"content\": \"You are a SOC analyst assistant. Analyze only supplied evidence, explain uncertainty, and recommend investigation steps. Do not claim an attack is confirmed without sufficient evidence.\"},\n    {\"role\": \"user\", \"content\": \"Analyze this Wazuh alert JSON: \" + JSON.stringify($json)}\n  ],\n  \"stream\": false\n}",
+        "options": {}
+      },
+      "id": "replace-http-node-id",
+      "name": "Ollama Analysis",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        500,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "REPLACE_WITH_SENDER_EMAIL",
+        "toEmail": "REPLACE_WITH_RECIPIENT_EMAIL",
+        "subject": "Wazuh Security Alert - AI Analysis",
+        "emailFormat": "text",
+        "text": "={{ $json.message.content }}",
+        "options": {}
+      },
+      "id": "replace-email-node-id",
+      "name": "Send Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        760,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Ollama Analysis",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Analysis": {
+      "main": [
+        [
+          {
+            "node": "Send Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "replace-version-id",
+  "meta": {
+    "templateCredsSetupCompleted": false
+  },
+  "tags": []
+}
